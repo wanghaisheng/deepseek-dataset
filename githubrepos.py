@@ -86,7 +86,7 @@ def search_github_repos(
                 if "Link" in response.headers:
                     link_header = response.headers["Link"]
                     next_links = [
-                        link.split(";")[0].strip("<>")
+                        link.split(";")[0].strip("<>").strip() # Added .strip() here
                         for link in link_header.split(",")
                         if 'rel="next"' in link
                     ]
@@ -219,17 +219,16 @@ def merge_and_save_results(
          if isinstance(existing_info,dict):
              for item in existing_info.get("description", []):
                keywords = extract_keywords(item)
-               merged_data["all"].append(
-                   { # <---- Make sure this line is indented at the SAME level as 'keywords = extract_keywords(item)'
-                       "name": domain,
-                       "description" : item,
-                       "keywords": keywords,
-                       "category": assign_category(keywords),
-                       "techstack": extract_techstack(keywords, keywords_to_search),
-                       "domain_strength": existing_info.get("domain_strength"),
-                       "est_mo_clicks": existing_info.get("est_mo_clicks",0),
-                       "google_description":  existing_info.get("google_description")
-                   }) # <---- And this closing bracket too
+               merged_data["all"].append({
+                   "name": domain,
+                   "description" : item,
+                   "keywords": keywords,
+                   "category": assign_category(keywords),
+                   "techstack": extract_techstack(keywords, keywords_to_search),
+                   "domain_strength": existing_info.get("domain_strength"),
+                   "est_mo_clicks": existing_info.get("est_mo_clicks",0),
+                   "google_description":  existing_info.get("google_description")
+               })
     # 4. save to file
     save_data(output_filepath, merged_data)
     logging.info(f"Results saved to: {output_filepath}")
