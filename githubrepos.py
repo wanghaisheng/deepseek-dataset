@@ -7,6 +7,7 @@ import logging
 import time
 import argparse
 from typing import List, Dict, Any, TypedDict
+import re # Import the re module for regular expressions
 
 load_dotenv()
 
@@ -141,7 +142,10 @@ def extract_keywords(description: str) -> List[str]:
       """Extract keywords from description string."""
       if not description:
          return []
-      return description.lower().replace(/[,.]/g, '').split(/\s+/).filter(Boolean)
+      description = description.lower()
+      description = re.sub(r'[,.]', '', description) # Use re.sub for regex replace
+      return [word for word in description.split() if word] # Split by whitespace and filter empty strings
+
 
 def assign_category(keywords: List[str])-> str:
      """Categorizes item based on extracted keywords."""
