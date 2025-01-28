@@ -86,7 +86,7 @@ def search_github_repos(
                 if "Link" in response.headers:
                     link_header = response.headers["Link"]
                     next_links = [
-                        link.split(";")[0].strip("<>").strip() # Added .strip() here
+                        link.split(";")[0].replace("<",'').replace('>','').strip() # Added .strip() here
                         for link in link_header.split(",")
                         if 'rel="next"' in link
                     ]
