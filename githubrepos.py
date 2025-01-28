@@ -7,7 +7,7 @@ import logging
 import time
 import argparse
 from typing import List, Dict, Any, TypedDict
-import re # Import the re module for regular expressions
+import re  # Import the re module for regular expressions
 
 load_dotenv()
 
@@ -92,9 +92,10 @@ def search_github_repos(
                         if 'rel="next"' in link
                     ]
                     next_page_url = next_links[0] if next_links else None
+                    
                 else:
                     next_page_url = None
-
+                
             repo_data[keyword] = all_repo_data_for_keyword
         except requests.exceptions.RequestException as e:
             logging.error(f"Error searching for '{keyword}': {e}")
