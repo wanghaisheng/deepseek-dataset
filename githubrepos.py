@@ -91,6 +91,7 @@ def search_github_repos(
                         for link in link_header.split(",")
                         if 'rel="next"' in link
                     ]
+                    print('===',next_links)
                     next_page_url = next_links[0] if next_links else None
                     
                 else:
