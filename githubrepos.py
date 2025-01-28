@@ -179,8 +179,60 @@ def extract_techstack(keywords: List[str], all_keywords: List[str]) -> List[str]
     return tech_stack
 
 
-
 def merge_and_save_results(
+    keywords_to_search: List[str],
+    token: str,
+    output_filepath: Path,
+    min_stars: int = 0,
+    min_forks: int = 0,
+) -> None:
+    """Searches, loads existing data, merges, and saves new data.
+
+    Args:
+       keywords (list): A list of keywords to search for.
+       token (str, optional): A GitHub personal access token for higher rate limits. Defaults to None.
+       output_filepath (str) : Path to save the results to
+       min_stars (int, optional): Minimum number of stars a repo should have. Defaults to 0.
+       min_forks (int, optional): Minimum number of forks a repo should have. Defaults to 0.
+    """
+    # 1. search github for keywords, with filter criteria
+    new_results = search_github_repos(keywords_to_search, token, min_stars, min_forks)
+
+    # 2. Load existing data (or initialize an empty dict)
+    existing_data = load_existing_data(output_filepath)
+
+    # 3.  Merge the data, make them unique and add keywords as properties
+    merged_data = {"all":[]}
+    for keyword, new_repos in new_results.items():
+         if not new_repos:
+            logging.warning(f"No results for {keyword}. skipping...")
+            continue  # Skip if there are no results
+         for repo in new_repos:
+              repo["keywords"] = extract_keywords(repo["description"]);
+              repo["category"] = assign_category(repo["keywords"]);
+              repo["techstack"] = extract_techstack(repo["keywords"], keywords_to_search);
+              merged_data["all"].append(repo)
+
+    for domain, existing_info in existing_data.items():
+         if domain not in merged_data:
+             merged_data[domain] = []
+         if isinstance(existing_info,dict):
+             for item in existing_info.get("description", []):
+               keywords = extract_keywords(item);
+               merged_data["all"].append({ # Corrected indentation here
+                        "name": domain,
+                    "description" : item,
+                       "keywords": keywords,
+                       "category": assign_category(keywords),
+                        "techstack": extract_techstack(keywords, keywords_to_search),
+                         "domain_strength": existing_info.get("domain_strength"),
+                          "est_mo_clicks": existing_info.get("est_mo_clicks",0),
+                         "google_description":  existing_info.get("google_description")
+                    });
+    # 4. save to file
+    save_data(output_filepath, merged_data)
+    logging.info(f"Results saved to: {output_filepath}")
+def merge_and_save_results1(
     keywords_to_search: List[str],
     token: str,
     output_filepath: Path,
