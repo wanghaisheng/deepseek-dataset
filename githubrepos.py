@@ -85,6 +85,7 @@ def search_github_repos(
                 # Handle Pagination
                 if "Link" in response.headers:
                     link_header = response.headers["Link"]
+                    print('===',link_header)
                     next_links = [
                         link.split(";")[0].strip("<>").strip() # Added .strip() here
                         for link in link_header.split(",")
