@@ -7,7 +7,6 @@ import logging
 import time
 import argparse
 from typing import List, Dict, Any, TypedDict
-import re # Import the re module for regular expressions
 
 load_dotenv()
 
@@ -86,7 +85,7 @@ def search_github_repos(
                 if "Link" in response.headers:
                     link_header = response.headers["Link"]
                     next_links = [
-                        link.split(";")[0].strip("<>").strip() # Added .strip() here
+                        link.split(";")[0].strip("<>")
                         for link in link_header.split(",")
                         if 'rel="next"' in link
                     ]
@@ -138,6 +137,8 @@ def save_data(filepath: Path, data: Dict[str, Any]) -> None:
     with open(filepath, "w") as f:
         json.dump(data, f, indent=2, default=lambda o: o.__dict__)
 
+import re
+
 def extract_keywords(description: str) -> List[str]:
       """Extract keywords from description string."""
       if not description:
@@ -145,8 +146,6 @@ def extract_keywords(description: str) -> List[str]:
       description = description.lower()
       description = re.sub(r'[,.]', '', description) # Use re.sub for regex replace
       return [word for word in description.split() if word] # Split by whitespace and filter empty strings
-
-
 def assign_category(keywords: List[str])-> str:
      """Categorizes item based on extracted keywords."""
      if not keywords:
@@ -179,6 +178,7 @@ def extract_techstack(keywords: List[str], all_keywords: List[str]) -> List[str]
     return tech_stack
 
 
+
 def merge_and_save_results(
     keywords_to_search: List[str],
     token: str,
@@ -208,9 +208,9 @@ def merge_and_save_results(
             logging.warning(f"No results for {keyword}. skipping...")
             continue  # Skip if there are no results
          for repo in new_repos:
-              repo["keywords"] = extract_keywords(repo["description"])
-              repo["category"] = assign_category(repo["keywords"])
-              repo["techstack"] = extract_techstack(repo["keywords"], keywords_to_search)
+              repo["keywords"] = extract_keywords(repo["description"]);
+              repo["category"] = assign_category(repo["keywords"]);
+              repo["techstack"] = extract_techstack(repo["keywords"], keywords_to_search);
               merged_data["all"].append(repo)
 
     for domain, existing_info in existing_data.items():
@@ -218,17 +218,17 @@ def merge_and_save_results(
              merged_data[domain] = []
          if isinstance(existing_info,dict):
              for item in existing_info.get("description", []):
-               keywords = extract_keywords(item)
-               merged_data["all"].append({
-                   "name": domain,
-                   "description" : item,
-                   "keywords": keywords,
-                   "category": assign_category(keywords),
-                   "techstack": extract_techstack(keywords, keywords_to_search),
-                   "domain_strength": existing_info.get("domain_strength"),
-                   "est_mo_clicks": existing_info.get("est_mo_clicks",0),
-                   "google_description":  existing_info.get("google_description")
-               })
+               keywords = extract_keywords(item);
+                merged_data["all"].append({
+                        "name": domain,
+                    "description" : item,
+                       "keywords": keywords,
+                       "category": assign_category(keywords),
+                        "techstack": extract_techstack(keywords, keywords_to_search),
+                         "domain_strength": existing_info.get("domain_strength"),
+                          "est_mo_clicks": existing_info.get("est_mo_clicks",0),
+                         "google_description":  existing_info.get("google_description")
+                    });
     # 4. save to file
     save_data(output_filepath, merged_data)
     logging.info(f"Results saved to: {output_filepath}")
