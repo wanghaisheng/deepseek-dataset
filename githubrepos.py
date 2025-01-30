@@ -51,11 +51,11 @@ def search_github_repositories(query, min_stars=0, min_forks=0, per_page=50):
         repos.extend(data.get("items", []))
         
         # Pagination Handling
+
         if "next" in response.links:
-            GITHUB_API_URL = response.links["next"]["url"]
+            next_url = response.links["next"]["url"]
         else:
             break
-
         logging.info(f"Fetched {len(repos)} repositories so far...")
     
     return repos
