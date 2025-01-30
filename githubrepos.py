@@ -14,12 +14,11 @@ GITHUB_API_URL = "https://api.github.com/search/repositories"
 
 # Get GitHub Token from Environment Variable
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-
 if not GITHUB_TOKEN:
     logging.error("GitHub Token not found! Set it using 'export GITHUB_TOKEN=your_token'")
     exit(1)
 
-# Common technologies and keywords
+# Common technologies and categories
 TECH_STACKS = ["react", "nextjs", "vue", "angular", "django", "flask", "fastapi", "spring", "laravel", "express", "nodejs", "rails", "golang", "rust", "flutter"]
 CATEGORIES = {
     "ecommerce": ["shop", "store", "ecommerce", "cart", "shopify"],
@@ -36,12 +35,9 @@ def search_github_repositories(query, min_stars=0, min_forks=0, per_page=50):
     params = {"q": query, "sort": "stars", "order": "desc", "per_page": per_page}
     
     repos = []
-    next_url = GITHUB_API_URL
-
-    while next_url:
-        response = requests.get(next_url, headers=headers, params=params)
-        
-        if response.status_code == 403:  # Rate-limited
+    while True:
+        response = requests.get(GITHUB_API_URL, headers=headers, params=params)
+        if response.status_code == 403:
             reset_time = int(response.headers.get("X-RateLimit-Reset", time.time())) - time.time()
             logging.warning(f"Rate limit exceeded. Sleeping for {reset_time:.0f} seconds...")
             time.sleep(reset_time + 1)
@@ -53,54 +49,37 @@ def search_github_repositories(query, min_stars=0, min_forks=0, per_page=50):
 
         data = response.json()
         repos.extend(data.get("items", []))
-
-        # Pagination: Get the next page URL
-        next_url = None
-        if "Link" in response.headers:
-            links = response.headers["Link"].split(", ")
-            for link in links:
-                if 'rel="next"' in link:
-                    next_url = link.split(";")[0].strip("<>")
-                    break
+        
+        # Pagination Handling
+        if "next" in response.links:
+            GITHUB_API_URL = response.links["next"]["url"]
+        else:
+            break
 
         logging.info(f"Fetched {len(repos)} repositories so far...")
-
+    
     return repos
 
 def extract_keywords(description):
     """Extracts potential keywords from the description."""
-    if not description:
-        return []
-    
-    keywords = re.findall(r"\b[a-zA-Z0-9\-]+\b", description.lower())
-    return list(set(keywords))
+    return list(set(re.findall(r"\b[a-zA-Z0-9\-]+\b", description.lower()))) if description else []
 
 def categorize_repository(description):
     """Categorizes repositories based on keywords."""
-    if not description:
-        return "other"
-
-    for category, keywords in CATEGORIES.items():
-        if any(keyword in description.lower() for keyword in keywords):
-            return category
+    if description:
+        for category, keywords in CATEGORIES.items():
+            if any(keyword in description.lower() for keyword in keywords):
+                return category
     return "other"
 
 def extract_tech_stack(description):
     """Identifies technologies used in the repository."""
-    if not description:
-        return []
-
-    return [tech for tech in TECH_STACKS if tech in description.lower()]
+    return [tech for tech in TECH_STACKS if tech in description.lower()] if description else []
 
 def process_repositories(repositories, min_stars, min_forks):
     """Processes repositories by filtering, extracting metadata, and categorizing."""
-    processed_data = []
-
-    for repo in repositories:
-        if repo["stargazers_count"] < min_stars or repo["forks_count"] < min_forks:
-            continue
-
-        repo_data = {
+    return [
+        {
             "name": repo["name"],
             "url": repo["html_url"],
             "description": repo["description"],
@@ -111,27 +90,24 @@ def process_repositories(repositories, min_stars, min_forks):
             "keywords": extract_keywords(repo["description"]),
             "category": categorize_repository(repo["description"]),
         }
-        processed_data.append(repo_data)
-
-    return processed_data
+        for repo in repositories
+        if repo["stargazers_count"] >= min_stars and repo["forks_count"] >= min_forks
+    ]
 
 def save_to_json(data, output_filepath):
     """Saves repository data to a JSON file."""
+    existing_data = []
     if os.path.exists(output_filepath):
         with open(output_filepath, "r", encoding="utf-8") as file:
             existing_data = json.load(file)
-    else:
-        existing_data = []
 
     # Merge and avoid duplicates
     urls = {repo["url"] for repo in existing_data}
-    new_data = [repo for repo in data if repo["url"] not in urls]
-
-    all_data = existing_data + new_data
-
+    all_data = existing_data + [repo for repo in data if repo["url"] not in urls]
+    
     with open(output_filepath, "w", encoding="utf-8") as file:
         json.dump(all_data, file, indent=4, ensure_ascii=False)
-
+    
     logging.info(f"Results saved to: {output_filepath}")
 
 def main():
@@ -140,20 +116,15 @@ def main():
     parser.add_argument("--min-stars", type=int, default=0, help="Minimum stars required")
     parser.add_argument("--min-forks", type=int, default=0, help="Minimum forks required")
     parser.add_argument("--output", default="github_repos.json", help="Output JSON file")
-
     args = parser.parse_args()
-
-    # Construct GitHub search query
-    query_terms = args.keywords.split(",")
-    search_query = " OR ".join(f"{term.strip()} in:name,description,readme" for term in query_terms)
-
+    
+    search_query = " OR ".join(f"{term.strip()} in:name,description,readme" for term in args.keywords.split(","))
     logging.info(f"Searching GitHub for repositories with keywords: {args.keywords}")
-
+    
     repositories = search_github_repositories(search_query, args.min_stars, args.min_forks)
     processed_repos = process_repositories(repositories, args.min_stars, args.min_forks)
-
+    
     logging.info(f"Found {len(processed_repos)} repositories after filtering.")
-
     save_to_json(processed_repos, args.output)
 
 if __name__ == "__main__":
