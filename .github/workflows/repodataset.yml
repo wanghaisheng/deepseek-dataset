@@ -6,17 +6,17 @@ on:
       keywords:
         description: 'Comma-separated keywords to search'
         required: true
-        default: 'saas starter,saas kit,starter kit, saas boilerplate, next.js saas, react.js saas, laravel saas, starter template, b2b saas, saas kit, remix saas, saas framework,saas starter kit, next.js starter kit, react.js starter kit, laravel starter kit, remix starter kit, open source saas, saas starter template, production-ready saas, free open-source saas, node.js starter kit, saas starter framework'
+        default: 'deepseek,deep seek'
       min_stars:
         description: "Minimum number of stars a repo should have"
         required: false
-        default: 10
+        default: "10"
       min_forks:
         description: "Minimum number of forks a repo should have"
         required: false
-        default: 10
+        default: "10"
       output_file:
-        description: 'Output json file path'
+        description: 'Output JSON file path'
         required: false
         default: 'results/data.json'
 
@@ -32,21 +32,21 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
-          cache: 'pip' # Make sure you have requirements.txt file or pyproject.toml in your repo
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Run GitHub repo search script
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          KEYWORDS_ENV: ${{ github.event.inputs.keywords }}
-          MIN_STARS: ${{ github.event.inputs.min_stars }}
-          MIN_FORKS: ${{ github.event.inputs.min_forks }}
-          OUTPUT_FILE: ${{ github.event.inputs.output_file }}
         run: |
-          python githubrepos.py
+          python githubrepos.py \
+            --keywords "${{ github.event.inputs.keywords }}" \
+            --min-stars "${{ github.event.inputs.min_stars }}" \
+            --min-forks "${{ github.event.inputs.min_forks }}" \
+            --output "${{ github.event.inputs.output_file }}"
 
       - name: Upload search results as artifact
         if: always()
