@@ -46,7 +46,7 @@ jobs:
           MIN_FORKS: ${{ github.event.inputs.min_forks }}
           OUTPUT_FILE: ${{ github.event.inputs.output_file }}
         run: |
-          python dailysaasstarter.py
+          python githubrepos.py
 
       - name: Upload search results as artifact
         if: always()
